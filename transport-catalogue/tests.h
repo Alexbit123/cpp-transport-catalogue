@@ -16,7 +16,7 @@ void TestAddStop() {
 	stop.coordinates_.lng = 486.18;
 	query.stop_struct = stop;
 
-	catalogue.AddStop(query);
+	catalogue.AddStop(stop);
 	auto result = catalogue.FindStop("My ostanovka");
 	assert(result->stop_name == "My ostanovka");
 	assert(result->coordinates_.lat == 152.45);
@@ -45,7 +45,7 @@ void TestAddBus() {
 	bus.route.push_back(&stop_two);
 	query.bus_struct = bus;
 
-	catalogue.AddBus(query);
+	catalogue.AddBus(bus);
 	auto result = catalogue.FindBus("256");
 	assert(result->bus_name == "256");
 	assert(result->route[0] == &stop_one);
@@ -53,17 +53,15 @@ void TestAddBus() {
 }
 
 void TestInputReaderParseQueryStopFirstIteration() {
-	transport_catalogue::detail::Query query;
-
+	transport_catalogue::detail::Stop query;
 	{
 		std::string str = "Stop My ostanovka: 152.45, 486.18";
 
 		query = input_reader::detail::ParseQueryStopFirstIteration(str);
 
-		assert(query.query_name == "Stop");
-		assert(query.stop_struct.stop_name == "My ostanovka");
-		assert(query.stop_struct.coordinates_.lat == 152.45);
-		assert(query.stop_struct.coordinates_.lng == 486.18);
+		assert(query.stop_name == "My ostanovka");
+		assert(query.coordinates_.lat == 152.45);
+		assert(query.coordinates_.lng == 486.18);
 	}
 
 	{
@@ -71,10 +69,9 @@ void TestInputReaderParseQueryStopFirstIteration() {
 
 		query = input_reader::detail::ParseQueryStopFirstIteration(str);
 
-		assert(query.query_name == "Stop");
-		assert(query.stop_struct.stop_name == "My    ostanovka");
-		assert(query.stop_struct.coordinates_.lat == 152.45);
-		assert(query.stop_struct.coordinates_.lng == 486.18);
+		assert(query.stop_name == "My    ostanovka");
+		assert(query.coordinates_.lat == 152.45);
+		assert(query.coordinates_.lng == 486.18);
 	}
 
 	{
@@ -82,23 +79,22 @@ void TestInputReaderParseQueryStopFirstIteration() {
 
 		query = input_reader::detail::ParseQueryStopFirstIteration(str);
 
-		assert(query.query_name == "Stop");
-		assert(query.stop_struct.stop_name == "My    ostanovka");
-		assert(query.stop_struct.coordinates_.lat == 152.45);
-		assert(query.stop_struct.coordinates_.lng == 486.18);
+		assert(query.stop_name == "My    ostanovka");
+		assert(query.coordinates_.lat == 152.45);
+		assert(query.coordinates_.lng == 486.18);
 	}
 }
 
 void TestInputReaderParseQueryStopSecondIteration() {
-	transport_catalogue::detail::Query query;
+	transport_catalogue::detail::Distance query;
 
 	{
 		std::string str = "Stop My ostanovka: 152.45, 486.18, 500m to Stir, 480m to Kalinka";
 
 		query = input_reader::detail::ParseQueryStopSecondIteration(str);
 
-		assert(query.stop_to_stop_distance[0] == std::tuple(500, "My ostanovka", "Stir"));
-		assert(query.stop_to_stop_distance[1] == std::tuple(480, "My ostanovka", "Kalinka"));
+		assert(query.stop_to_stop_distance.count(std::tuple("My ostanovka", "Stir", 500)) == 1);
+		assert(query.stop_to_stop_distance.count(std::tuple("My ostanovka", "Kalinka", 480)) == 1);
 	}
 
 	{
@@ -106,6 +102,6 @@ void TestInputReaderParseQueryStopSecondIteration() {
 
 		query = input_reader::detail::ParseQueryStopSecondIteration(str);
 
-		assert(query.stop_to_stop_distance[0] == std::tuple(4800, "My    ostanovka", "Mariushka"));
+		assert(query.stop_to_stop_distance.count(std::tuple("My    ostanovka", "Mariushka", 4800)) == 1);
 	}
 }

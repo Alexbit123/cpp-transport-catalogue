@@ -1,63 +1,72 @@
 #include "stat_reader.h"
 
 namespace stat_reader {
+	void RequestProcessing(std::istream& in, std::ostream& out, transport_catalogue::TransportCatalogue& catalogue) {
+		int query_count_out;
+		std::vector<std::string> query;
+		std::string str;
+
+		in >> query_count_out;
+
+		for (int i = 0; i < query_count_out; ++i) {
+			std::getline(in >> std::ws, str);
+			query.push_back(str);
+		}
+
+		stat_reader::statistic::PrintResult(query, catalogue, out);
+	}
+
 	namespace statistic {
 		namespace detail {
-			void GetBus(std::string_view str, transport_catalogue::TransportCatalogue& catalogue) {
+			void PrintInfoBus(std::string_view str, transport_catalogue::TransportCatalogue& catalogue, std::ostream& out) {
 				transport_catalogue::detail::QueryResultBus result;
-				std::unordered_set<transport_catalogue::detail::Stop*> count;
-				double route_length_geo = 0;
 				auto space = str.find(' ');
-				result.query_name = str.substr(space + 1, str.npos);
-				if (catalogue.FindBus(result.query_name) != nullptr) {
-					auto bus = catalogue.FindBus(result.query_name);
-					result.count_stops = static_cast<int>(bus->route.size());
-
-					count.insert(bus->route.begin(), bus->route.end());
-					result.unique_count_stops = static_cast<int>(count.size());
-
-					for (size_t i = 0; i < bus->route.size() - 1; ++i) {
-						result.route_length += catalogue.GetDistance(bus->route[i]->stop_name, bus->route[i + 1]->stop_name);
-						route_length_geo += geo_coordinates::distance::ComputeDistance(bus->route[i]->coordinates_, 
-							bus->route[i + 1]->coordinates_);
-					}
-					result.curvature = result.route_length / route_length_geo;
-					catalogue.GetInfoBus(result);
+				std::string_view query_name = str.substr(space + 1, str.npos);
+				result = catalogue.GetInfoBus(query_name);
+				if (result.count_stops != 0) {
+					out << "Bus " << result.query_name << ": " << result.count_stops << " stops on route, "
+						<< result.unique_count_stops << " unique stops, " << std::setprecision(6)
+						<< result.route_length << " route length, " << result.curvature << " curvature" << std::endl;
 				}
 				else {
-					std::cout << "Bus " << result.query_name << ": not found" << std::endl;
+					out << "Bus " << result.query_name << ": not found" << std::endl;
 				}
+				
 			}
 
-			void GetStop(std::string_view str, transport_catalogue::TransportCatalogue& catalogue) {
+			void PrintInfoStop(std::string_view str, transport_catalogue::TransportCatalogue& catalogue, std::ostream& out) {
 				transport_catalogue::detail::QueryResultStop result;
 				auto space = str.find(' ');
-				result.query_name = str.substr(space + 1, str.npos);
-				if (!catalogue.GetBuses(result.query_name).empty()) {
-					result.buses.insert(catalogue.GetBuses(result.query_name).begin(), catalogue.GetBuses(result.query_name).end());
-					catalogue.GetInfoStop(result);
+				std::string_view query_name = str.substr(space + 1, str.npos);
+				result = catalogue.GetInfoStop(query_name);
+				if (!result.buses.empty()) {
+					out << "Stop " << result.query_name << ": buses ";
+					for (std::string_view stop : result.buses) {
+						out << stop << " ";
+					}
+					out << std::endl;
 				}
 				else {
 					if (catalogue.FindStop(result.query_name) == nullptr) {
-						std::cout << "Stop " << result.query_name << ": not found" << std::endl;
+						out << "Stop " << result.query_name << ": not found" << std::endl;
 					}
 					else {
-						std::cout << "Stop " << result.query_name << ": no buses" << std::endl;
+						out << "Stop " << result.query_name << ": no buses" << std::endl;
 					}
 				}
 			}
 		}//close detail
 
-		void GetResult(std::vector<std::string>& query, transport_catalogue::TransportCatalogue& catalogue) {
+		void PrintResult(std::vector<std::string>& query, transport_catalogue::TransportCatalogue& catalogue, std::ostream& out) {
 			std::string_view name;
 			for (std::string_view str : query) {
 				auto space = str.find(' ');
 				name = str.substr(0, space);
 				if (name == "Bus") {
-					detail::GetBus(str, catalogue);
+					detail::PrintInfoBus(str, catalogue, out);
 				}
 				if (name == "Stop") {
-					detail::GetStop(str, catalogue);
+					detail::PrintInfoStop(str, catalogue, out);
 				}
 			}
 		}

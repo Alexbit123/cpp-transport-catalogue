@@ -2,13 +2,15 @@
 #include "transport_catalogue.h"
 
 namespace stat_reader {
+	void RequestProcessing(std::istream& in, std::ostream& out, transport_catalogue::TransportCatalogue& catalogue);
+
 	namespace statistic {
 		namespace detail {
-			void GetBus(std::string_view str, transport_catalogue::TransportCatalogue& catalogue);
+			void PrintInfoBus(std::string_view str, transport_catalogue::TransportCatalogue& catalogue, std::ostream& out);
 
-			void GetStop(std::string_view str, transport_catalogue::TransportCatalogue& catalogue);
+			void PrintInfoStop(std::string_view str, transport_catalogue::TransportCatalogue& catalogue, std::ostream& out);
 		}//close detail
 
-		void GetResult(std::vector<std::string>& query, transport_catalogue::TransportCatalogue& catalogue);
+		void PrintResult(std::vector<std::string>& query, transport_catalogue::TransportCatalogue& catalogue, std::ostream& out);
 	}//close get_statistic
 }//close stat_reader

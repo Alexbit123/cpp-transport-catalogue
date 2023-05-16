@@ -35,13 +35,13 @@ namespace transport_catalogue {
 			std::vector<std::tuple<uint64_t, std::string, std::string>> stop_to_stop_distance;
 		};
 
-		struct QueryDistance {
-
+		struct Distance {
+			std::set<std::tuple<std::string, std::string, uint64_t>> stop_to_stop_distance;
 		};
 		struct QueryResultBus {
 			std::string_view query_name;
-			int count_stops;
-			int unique_count_stops;
+			int count_stops = 0;
+			int unique_count_stops = 0;
 			double route_length = 0;
 			double curvature = 0;
 		};
@@ -62,11 +62,11 @@ namespace transport_catalogue {
 
 	class TransportCatalogue {
 	public:
-		void AddBus(detail::Query query);
+		void AddBus(const detail::Bus& query);
 
-		void AddStop(detail::Query query);
+		void AddStop(const detail::Stop& query);
 
-		void AddDistance(detail::Query query);
+		void AddDistance(const detail::Distance& query);
 
 		detail::Bus* FindBus(std::string_view name_bus);
 
@@ -76,9 +76,9 @@ namespace transport_catalogue {
 
 		uint64_t GetDistance(std::string_view stop_one, std::string_view stop_two);
 
-		void GetInfoBus(detail::QueryResultBus result);
+		detail::QueryResultBus GetInfoBus(std::string_view name_bus);
 
-		void GetInfoStop(detail::QueryResultStop result);
+		detail::QueryResultStop GetInfoStop(std::string_view name_stop);
 
 	private:
 		std::unordered_map<std::string_view, detail::Bus*> busname_to_bus;

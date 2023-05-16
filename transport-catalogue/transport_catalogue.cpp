@@ -2,8 +2,8 @@
 
 namespace transport_catalogue {
 
-	void TransportCatalogue::AddBus(detail::Query query) {
-		buses.push_back(query.bus_struct);
+	void TransportCatalogue::AddBus(const detail::Bus& query) {
+		buses.push_back(query);
 		busname_to_bus[buses.back().bus_name] = &buses.back();
 
 		for (auto stop : buses.back().route) {
@@ -11,13 +11,13 @@ namespace transport_catalogue {
 		}
 	}
 
-	void TransportCatalogue::AddStop(detail::Query query) {
-		stops.push_back(query.stop_struct);
+	void TransportCatalogue::AddStop(const detail::Stop& query) {
+		stops.push_back(query);
 		stopname_to_stop[stops.back().stop_name] = &stops.back();
 	}
 
-	void TransportCatalogue::AddDistance(detail::Query query) {
-		for (auto& [distance, stopname_one, stopname_two] : query.stop_to_stop_distance) {
+	void TransportCatalogue::AddDistance(const detail::Distance& query) {
+		for (auto& [stopname_one, stopname_two, distance] : query.stop_to_stop_distance) {
 			stops_distance[{FindStop(stopname_one), FindStop(stopname_two)}] = distance;
 		}
 	}
@@ -51,17 +51,34 @@ namespace transport_catalogue {
 		return stops_distance.at({ FindStop(stop_two), FindStop(stop_one) });
 	}
 
-	void TransportCatalogue::GetInfoBus(detail::QueryResultBus result) {           //Bus X: R stops on route, U unique stops, L route length, C curvature
-		std::cout << "Bus " << result.query_name << ": " << result.count_stops << " stops on route, "
-			<< result.unique_count_stops << " unique stops, " << std::setprecision(6)
-			<< result.route_length << " route length, " << result.curvature << " curvature" << std::endl;
+	detail::QueryResultBus TransportCatalogue::GetInfoBus(std::string_view name_bus) {           //Bus X: R stops on route, U unique stops, L route length, C curvature
+		detail::QueryResultBus result;
+		std::unordered_set<transport_catalogue::detail::Stop*> count;
+		double route_length_geo = 0;
+		result.query_name = name_bus;
+		auto bus = this->FindBus(result.query_name);
+		if (bus != nullptr) {
+			result.count_stops = static_cast<int>(bus->route.size());
+
+			count.insert(bus->route.begin(), bus->route.end());
+			result.unique_count_stops = static_cast<int>(count.size());
+
+			for (size_t i = 0; i < bus->route.size() - 1; ++i) {
+				result.route_length += this->GetDistance(bus->route[i]->stop_name, bus->route[i + 1]->stop_name);
+				route_length_geo += geo_coordinates::distance::ComputeDistance(bus->route[i]->coordinates_,
+					bus->route[i + 1]->coordinates_);
+			}
+			result.curvature = result.route_length / route_length_geo;
+		}
+		return result;
 	}
 
-	void TransportCatalogue::GetInfoStop(detail::QueryResultStop result) {
-		std::cout << "Stop " << result.query_name << ": buses ";
-		for (std::string_view stop : result.buses) {
-			std::cout << stop << " ";
+	detail::QueryResultStop TransportCatalogue::GetInfoStop(std::string_view name_stop) {
+		transport_catalogue::detail::QueryResultStop result;
+		result.query_name = name_stop;
+		if (!GetBuses(result.query_name).empty()) {
+			result.buses.insert(GetBuses(result.query_name).begin(), GetBuses(result.query_name).end());
 		}
-		std::cout << std::endl;
+		return result;
 	}
 }//close transport_catalogue

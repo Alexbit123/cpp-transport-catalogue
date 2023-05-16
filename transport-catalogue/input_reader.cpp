@@ -3,11 +3,26 @@
 namespace input_reader {
 	using namespace std::literals;
 
+	void ÑatalogFilling(std::istream& in, transport_catalogue::TransportCatalogue& catalogue) {
+		int query_count_in;
+		std::vector<std::string> query;
+		std::string str;
+
+		in >> query_count_in;
+
+		for (int i = 0; i < query_count_in; ++i) {
+			std::getline(in >> std::ws, str);
+			query.push_back(str);
+		}
+
+		input_reader::add_query::Add(query, catalogue);
+	}
+
 	namespace detail {
 		constexpr int COMMA = 2;
-		transport_catalogue::detail::Query ParseQueryBus(
+		transport_catalogue::detail::Bus ParseQueryBus(
 			std::string_view str, transport_catalogue::TransportCatalogue& catalogue) {
-			transport_catalogue::detail::Query result;
+			transport_catalogue::detail::Bus result;
 			bool circular_route = false, query_name = true;
 
 			while (true) {
@@ -18,13 +33,13 @@ namespace input_reader {
 				}
 				if (str.substr(0, space) == "Bus"sv && query_name) {
 					query_name = false;
-					result.query_name = str.substr(0, space);
+					//result.query_name = str.substr(0, space);
 				}
 				else {
-					if (result.bus_struct.bus_name == ""sv) {
+					if (result.bus_name == ""sv) {
 						const auto colon = str.find(':');
 						std::string_view buf = str.substr(0, colon);
-						result.bus_struct.bus_name = str.substr(0, buf.find_last_not_of(" ", buf.npos) + 1);
+						result.bus_name = str.substr(0, buf.find_last_not_of(" ", buf.npos) + 1);
 						str.remove_prefix(colon + 1);
 						continue;
 					}
@@ -32,32 +47,32 @@ namespace input_reader {
 						circular_route = true;
 						const auto greater_sign = str.find('>');
 						std::string_view buf = str.substr(0, greater_sign);
-						result.bus_struct.route.push_back(catalogue.FindStop(
+						result.route.push_back(catalogue.FindStop(
 							str.substr(0, buf.find_last_not_of(" ", buf.npos) + 1)));
 						str.remove_prefix(greater_sign + 1);
 						continue;
 					}
 					else if (circular_route) {
 						std::string_view buf = str.substr(0, str.npos);
-						result.bus_struct.route.push_back(catalogue.FindStop(
+						result.route.push_back(catalogue.FindStop(
 							str.substr(0, buf.find_last_not_of(" ", buf.npos) + 1)));
 						space = str.npos;
 					}
 					else if (str.find('-') != str.npos) {
 						const auto dash = str.find('-');
 						std::string_view buf = str.substr(0, dash);
-						result.bus_struct.route.push_back(catalogue.FindStop(
+						result.route.push_back(catalogue.FindStop(
 							str.substr(0, buf.find_last_not_of(" ", buf.npos) + 1)));
 						str.remove_prefix(dash + 1);
 						continue;
 					}
 					else {
 						std::string_view buf = str.substr(0, str.npos);
-						result.bus_struct.route.push_back(catalogue.FindStop(
+						result.route.push_back(catalogue.FindStop(
 							str.substr(0, buf.find_last_not_of(" ", buf.npos) + 1)));
 
-						for (int i = static_cast<int>(result.bus_struct.route.size() - 2); i >= 0; --i) {
-							result.bus_struct.route.push_back(result.bus_struct.route[i]);
+						for (int i = static_cast<int>(result.route.size() - 2); i >= 0; --i) {
+							result.route.push_back(result.route[i]);
 						}
 						space = str.npos;
 					}
@@ -74,8 +89,8 @@ namespace input_reader {
 			return result;
 		}
 
-		transport_catalogue::detail::Query ParseQueryStopSecondIteration(std::string_view str) {
-			transport_catalogue::detail::Query result;
+		transport_catalogue::detail::Distance ParseQueryStopSecondIteration(std::string_view str) {
+			transport_catalogue::detail::Distance result;
 			std::string stop_name_one = "";
 			bool query_name = true;
 			int count_comma = 0;
@@ -108,13 +123,13 @@ namespace input_reader {
 							space = str.find(' ');
 						}
 						if (str.find(',') != str.npos) {
-							result.stop_to_stop_distance.push_back({distance, stop_name_one,
-								static_cast<std::string>(str.substr(0, str.find(','))) });
+							result.stop_to_stop_distance.insert({ stop_name_one,
+								static_cast<std::string>(str.substr(0, str.find(','))), distance });
 							space = str.find(',');
 						}
 						else {
-							result.stop_to_stop_distance.push_back({ distance, stop_name_one,
-								static_cast<std::string>(str.substr(0, str.npos)) });
+							result.stop_to_stop_distance.insert({ stop_name_one,
+								static_cast<std::string>(str.substr(0, str.npos)), distance });
 							space = str.npos;
 						}
 					}
@@ -135,8 +150,8 @@ namespace input_reader {
 			return result;
 		}
 
-		transport_catalogue::detail::Query ParseQueryStopFirstIteration(std::string_view str) {
-			transport_catalogue::detail::Query result;
+		transport_catalogue::detail::Stop ParseQueryStopFirstIteration(std::string_view str) {
+			transport_catalogue::detail::Stop result;
 			bool query_name = true;
 
 			while (true) {
@@ -147,25 +162,25 @@ namespace input_reader {
 				}
 				if (str.substr(0, space) == "Stop"sv && query_name) {
 					query_name = false;
-					result.query_name = str.substr(0, space);
+					//result.query_name = str.substr(0, space);
 				}
 				else {
-					if (result.stop_struct.stop_name == ""sv) {
+					if (result.stop_name == ""sv) {
 						const auto colon = str.find(':');
 						std::string_view word_to_colon = str.substr(0, colon);
-						result.stop_struct.stop_name = str.substr(
+						result.stop_name = str.substr(
 							0, word_to_colon.find_last_not_of(" ", word_to_colon.npos) + 1);
 						str.remove_prefix(colon + 1);
 						continue;
 					}
-					result.stop_struct.coordinates_.lat = std::stod(static_cast<std::string>(str.substr(0, space - 1)));
+					result.coordinates_.lat = std::stod(static_cast<std::string>(str.substr(0, space - 1)));
 					str.remove_prefix(space + 1);
 					space = str.find(' ');
 					if (space == str.npos) {
-						result.stop_struct.coordinates_.lng = std::stod(static_cast<std::string>(str.substr(0, space)));
+						result.coordinates_.lng = std::stod(static_cast<std::string>(str.substr(0, space)));
 					}
 					else {
-						result.stop_struct.coordinates_.lng = std::stod(static_cast<std::string>(str.substr(0, space - 1)));
+						result.coordinates_.lng = std::stod(static_cast<std::string>(str.substr(0, space - 1)));
 					}
 					break;
 				}
@@ -188,7 +203,7 @@ namespace input_reader {
 			for (std::string_view str : query) {
 				const auto space = str.find(' ');
 				if (str.substr(0, space) == "Stop") {
-					transport_catalogue::detail::Query result = detail::ParseQueryStopFirstIteration(str);
+					transport_catalogue::detail::Stop result = detail::ParseQueryStopFirstIteration(str);
 					catalogue.AddStop(result);
 				}
 			}
@@ -197,7 +212,7 @@ namespace input_reader {
 				const auto space = str.find(' ');
 				if (str.substr(0, space) == "Stop") {
 					if (str.find(" to ", 0) != str.npos) {
-						transport_catalogue::detail::Query result = detail::ParseQueryStopSecondIteration(str);
+						transport_catalogue::detail::Distance result = detail::ParseQueryStopSecondIteration(str);
 						catalogue.AddDistance(result);
 					}
 				}
@@ -206,12 +221,11 @@ namespace input_reader {
 			for (std::string_view str : query) {
 				const auto space = str.find(' ');
 				if (str.substr(0, space) == "Bus") {
-					transport_catalogue::detail::Query result = detail::ParseQueryBus(str, catalogue);
+					transport_catalogue::detail::Bus result = detail::ParseQueryBus(str, catalogue);
 					catalogue.AddBus(result);
 				}
 			}
 		}
 	}//close add_query
-
 }//close input_reader
 
