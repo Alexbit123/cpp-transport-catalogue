@@ -16,10 +16,9 @@ namespace transport_catalogue {
 		stopname_to_stop[stops.back().stop_name] = &stops.back();
 	}
 
-	void TransportCatalogue::AddDistance(const detail::Distance& query) {
-		for (auto& [stopname_one, stopname_two, distance] : query.stop_to_stop_distance) {
-			stops_distance[{FindStop(stopname_one), FindStop(stopname_two)}] = distance;
-		}
+	void TransportCatalogue::AddDistance(const std::string_view name_stop_one,
+		const std::string_view name_stop_two, const uint64_t distance) {
+			stops_distance[{FindStop(name_stop_one), FindStop(name_stop_two)}] = distance;
 	}
 
 	detail::Bus* TransportCatalogue::FindBus(std::string_view name_bus) {

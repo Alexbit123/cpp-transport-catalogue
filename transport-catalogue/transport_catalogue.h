@@ -66,7 +66,8 @@ namespace transport_catalogue {
 
 		void AddStop(const detail::Stop& query);
 
-		void AddDistance(const detail::Distance& query);
+		void AddDistance(const std::string_view name_stop_one, 
+			const std::string_view name_stop_two, const uint64_t distance);
 
 		detail::Bus* FindBus(std::string_view name_bus);
 

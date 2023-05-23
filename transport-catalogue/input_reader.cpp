@@ -213,7 +213,9 @@ namespace input_reader {
 				if (str.substr(0, space) == "Stop") {
 					if (str.find(" to ", 0) != str.npos) {
 						transport_catalogue::detail::Distance result = detail::ParseQueryStopSecondIteration(str);
-						catalogue.AddDistance(result);
+						for (auto& [stopname_one, stopname_two, distance] : result.stop_to_stop_distance) {
+							catalogue.AddDistance(stopname_one, stopname_two, distance);
+						}
 					}
 				}
 			}
