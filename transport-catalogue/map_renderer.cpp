@@ -56,12 +56,10 @@ namespace renderer {
 		const std::unordered_map<std::string_view, 
 		domain::Bus*>& info_bus, std::vector<std::string_view>& buses_name, 
 		StopCoord& stop_to_coord) const {
-		int index_offset_coord = 0, counter = 0, index_offset_color = 0;
+		int index_offset_color = 0;
 		for (size_t i = 0; i < buses_name.size(); ++i) {
 			if (info_bus.at(buses_name[i])->route.size() != 0) {
 				svg::Polyline polyline;
-				index_offset_coord += counter;
-				counter = 0;
 				for (size_t j = 0; j < info_bus.at(buses_name[i])->route.size(); ++j) {
 					polyline.AddPoint(stop_to_coord.stop_to_coord.at(info_bus.at(buses_name[i])->route[j]->stop_name))
 						.SetFillColor("none")
@@ -69,7 +67,6 @@ namespace renderer {
 						.SetStrokeWidth(line_width_)
 						.SetStrokeLineCap(svg::StrokeLineCap::ROUND)
 						.SetStrokeLineJoin(svg::StrokeLineJoin::ROUND);
-					++counter;
 				}
 				doc.Add(polyline);
 			}
@@ -81,12 +78,10 @@ namespace renderer {
 	void MapRenderer::AddNameRoute(svg::Document& doc, 
 		const std::unordered_map<std::string_view, domain::Bus*>& info_bus, 
 		std::vector<std::string_view>& buses_name, StopCoord& stop_to_coord) const {
-		int index_offset_coord = 0, counter = 0, index_offset_color = 0;
+		int index_offset_color = 0;
 		for (size_t i = 0; i < buses_name.size(); ++i) {
 			if (info_bus.at(buses_name[i])->route.size() != 0) {
 				svg::Text text_name_route, text_substrate;
-				index_offset_coord += counter;
-				counter = 0;
 				if (info_bus.at(buses_name[i])->is_roundtrip) {
 					text_substrate.SetData(info_bus.at(buses_name[i])->bus_name)
 						.SetFillColor(underlayer_color_).SetFontFamily("Verdana")
@@ -105,7 +100,6 @@ namespace renderer {
 						.SetFontFamily("Verdana");
 					doc.Add(text_substrate);
 					doc.Add(text_name_route);
-					counter += static_cast<int>(info_bus.at(buses_name[i])->route.size());
 				}
 				else {
 					text_substrate.SetData(info_bus.at(buses_name[i])->bus_name)
@@ -154,7 +148,6 @@ namespace renderer {
 						doc.Add(text_substrate);
 						doc.Add(text_name_route);
 					}
-					counter += static_cast<int>(info_bus.at(buses_name[i])->route.size());
 				}
 			}
 			else {
@@ -164,20 +157,20 @@ namespace renderer {
 	}
 	void MapRenderer::AddStop(svg::Document& doc, StopCoord& stop_to_coord) const {
 		svg::Circle circle;
-		for (auto& [name_stop, point] : stop_to_coord.stop_to_coord) {
-			circle.SetCenter(point)
+		for (auto& [name_stop, coord] : stop_to_coord.stop_to_coord) {
+			circle.SetCenter(coord)
 				.SetRadius(stop_radius_).SetFillColor("white");
 			doc.Add(circle);
 		}
 	}
 	void MapRenderer::AddNameStop(svg::Document& doc, StopCoord& stop_to_coord) const {
 		svg::Text text_substrate, text_name_route;
-		for (auto& [name_stop, point] : stop_to_coord.stop_to_coord) {
+		for (auto& [name_stop, coord] : stop_to_coord.stop_to_coord) {
 			text_substrate.SetData(name_stop)
 				.SetFillColor(underlayer_color_).SetFontFamily("Verdana")
 				.SetFontSize(stop_label_font_size_)
 				.SetOffset({ stop_label_offset[0], stop_label_offset[1] })
-				.SetPosition(point)
+				.SetPosition(coord)
 				.SetStrokeColor(underlayer_color_)
 				.SetStrokeLineCap(svg::StrokeLineCap::ROUND)
 				.SetStrokeLineJoin(svg::StrokeLineJoin::ROUND)
@@ -185,7 +178,7 @@ namespace renderer {
 			text_name_route.SetData(name_stop)
 				.SetFillColor("black")
 				.SetOffset({ stop_label_offset[0], stop_label_offset[1] })
-				.SetPosition(point)
+				.SetPosition(coord)
 				.SetFontSize(stop_label_font_size_)
 				.SetFontFamily("Verdana");
 			doc.Add(text_substrate);
