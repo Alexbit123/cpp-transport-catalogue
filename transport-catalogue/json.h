@@ -24,7 +24,7 @@ namespace json {
 		using runtime_error::runtime_error;
 	};
 
-	class Node : Value {
+	class Node : private Value {
 	public:
 		using variant::variant;
 
