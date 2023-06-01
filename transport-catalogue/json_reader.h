@@ -13,7 +13,7 @@ namespace json_reader {
 	}
 
 	namespace add_json_query {
-		void Add(transport_catalogue::TransportCatalogue& db, 
+		void AddBaseRequests(transport_catalogue::TransportCatalogue& db,
 			renderer::MapRenderer& renderer, std::string& query);
 
 	}//close add_json_query

@@ -18,7 +18,7 @@ namespace json_reader {
 				break;
 			}
 		}
-		add_json_query::Add(db, renderer, query);
+		add_json_query::AddBaseRequests(db, renderer, query);
 		if (need_out_stat_request) {
 			out_json_query::Output(db, query, out, renderer);
 		}
@@ -33,7 +33,7 @@ namespace json_reader {
 		}
 	}
 	namespace add_json_query {
-		void Add(transport_catalogue::TransportCatalogue& db, 
+		void AddBaseRequests(transport_catalogue::TransportCatalogue& db,
 			renderer::MapRenderer& renderer, std::string& query) {
 			std::istringstream strm(query);
 			json::Document doc = json::Load(strm);

@@ -274,7 +274,7 @@ namespace json {
 
 	}  // namespace
 
-	Node::Node(nullptr_t value)
+	/*Node::Node(nullptr_t value)
 		: value_(value) {
 	}
 
@@ -300,11 +300,11 @@ namespace json {
 
 	Node::Node(string value)
 		: value_(value) {
-	}
+	}*/
 
 	const Array& Node::AsArray() const {
 		if (IsArray()) {
-			return get<Array>(value_);
+			return get<Array>(*this);
 		}
 		else {
 			throw logic_error("");
@@ -313,7 +313,7 @@ namespace json {
 
 	const Dict& Node::AsMap() const {
 		if (IsMap()) {
-			return get<Dict>(value_);
+			return get<Dict>(*this);
 		}
 		else {
 			throw logic_error("");
@@ -322,7 +322,7 @@ namespace json {
 
 	bool Node::AsBool() const {
 		if (IsBool()) {
-			return get<bool>(value_);
+			return get<bool>(*this);
 		}
 		else {
 			throw logic_error("");
@@ -331,7 +331,7 @@ namespace json {
 
 	int Node::AsInt() const {
 		if (IsInt()) {
-			return get<int>(value_);
+			return get<int>(*this);
 		}
 		else {
 			throw logic_error("");
@@ -340,10 +340,10 @@ namespace json {
 
 	double Node::AsDouble() const {
 		if (IsInt()) {
-			return static_cast<double>(get<int>(value_));
+			return static_cast<double>(get<int>(*this));
 		}
 		if (IsDouble()) {
-			return get<double>(value_);
+			return get<double>(*this);
 		}
 		else {
 			throw logic_error("");
@@ -352,7 +352,7 @@ namespace json {
 
 	const string& Node::AsString() const {
 		if (IsString()) {
-			return get<string>(value_);
+			return get<string>(*this);
 		}
 		else {
 			throw logic_error("");
@@ -360,36 +360,36 @@ namespace json {
 	}
 
 	bool Node::IsNull() const {
-		return holds_alternative<nullptr_t>(value_) ? true : false;
+		return holds_alternative<nullptr_t>(*this) ? true : false;
 	}
 
 	bool Node::IsArray() const {
-		return holds_alternative<Array>(value_) ? true : false;
+		return holds_alternative<Array>(*this) ? true : false;
 	}
 
 	bool Node::IsMap() const {
-		return holds_alternative<Dict>(value_) ? true : false;
+		return holds_alternative<Dict>(*this) ? true : false;
 	}
 
 	bool Node::IsBool() const {
-		return holds_alternative<bool>(value_) ? true : false;
+		return holds_alternative<bool>(*this) ? true : false;
 	}
 
 	bool Node::IsInt() const {
-		return holds_alternative<int>(value_) ? true : false;
+		return holds_alternative<int>(*this) ? true : false;
 	}
 
 	bool Node::IsDouble() const {
-		return holds_alternative<int>(value_) ||
-			holds_alternative<double>(value_) ? true : false;
+		return holds_alternative<int>(*this) ||
+			holds_alternative<double>(*this) ? true : false;
 	}
 
 	bool Node::IsPureDouble() const {
-		return holds_alternative<double>(value_) ? true : false;
+		return holds_alternative<double>(*this) ? true : false;
 	}
 
 	bool Node::IsString() const {
-		return holds_alternative<string>(value_) ? true : false;
+		return holds_alternative<string>(*this) ? true : false;
 	}
 
 	Document::Document(Node root)
@@ -408,15 +408,35 @@ namespace json {
 		PrintNode(doc.GetRoot(), output);
 	}
 
-	void PrintValue(std::nullptr_t, std::ostream& out) {
+	void PrintNode(const Node& node, std::ostream& out) {
+		std::visit(PrintValue{out}, node.GetValue());
+	}
+
+	bool operator==(const Node& node1, const Node& node2) {
+		return node1.GetValue() == node2.GetValue() ? true : false;
+	}
+
+	bool operator!=(const Node& node1, const Node& node2) {
+		return !(node1 == node2);
+	}
+
+	bool operator==(const Document& doc1, const Document& doc2) {
+		return doc1.GetRoot() == doc2.GetRoot() ? true : false;
+	}
+
+	bool operator!=(const Document& doc1, const Document& doc2) {
+		return !(doc1 == doc2);
+	}
+
+	void PrintValue::operator()(std::nullptr_t) const {
 		out << "null";
 	}
 
-	void PrintValue(const bool value, std::ostream& out) {
+	void PrintValue::operator()(const bool value) const {
 		value ? out << "true" : out << "false";
 	}
 
-	void PrintValue(const Array& value, std::ostream& out) {
+	void PrintValue::operator()(const Array& value) const {
 		bool is_first = true;
 		out << "[";
 		for (auto& elem : value) {
@@ -428,12 +448,12 @@ namespace json {
 				is_first = false;
 				PrintNode(elem, out);
 			}
-			
+
 		}
 		out << "]";
 	}
 
-	void PrintValue(const Dict& value, std::ostream& out) {
+	void PrintValue::operator()(const Dict& value) const {
 		bool is_first = true;
 		out << "{ ";
 		for (auto& [str, elem] : value) {
@@ -450,7 +470,7 @@ namespace json {
 		out << " }";
 	}
 
-	void PrintValue(const std::string& value, std::ostream& out) {
+	void PrintValue::operator()(const std::string& value) const {
 		string s = "";
 		s += "\"";
 		for (char ch : value) {
@@ -475,34 +495,12 @@ namespace json {
 		out << s;
 	}
 
-	void PrintValue(const int value, std::ostream& out) {
+	void PrintValue::operator()(const int value) const {
 		out << value;
 	}
 
-	void PrintValue(const double value, std::ostream& out) {
+	void PrintValue::operator()(const double value) const {
 		out << value;
-	}
-
-	void PrintNode(const Node& node, std::ostream& out) {
-		std::visit(
-			[&out](const auto& value) { PrintValue(value, out);},
-			node.GetValue());
-	}
-
-	bool operator==(const Node& node1, const Node& node2) {
-		return node1.GetValue() == node2.GetValue() ? true : false;
-	}
-
-	bool operator!=(const Node& node1, const Node& node2) {
-		return !(node1 == node2);
-	}
-
-	bool operator==(const Document& doc1, const Document& doc2) {
-		return doc1.GetRoot() == doc2.GetRoot() ? true : false;
-	}
-
-	bool operator!=(const Document& doc1, const Document& doc2) {
-		return !(doc1 == doc2);
 	}
 
 }  // namespace json

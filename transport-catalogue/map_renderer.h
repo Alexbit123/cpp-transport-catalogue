@@ -14,7 +14,7 @@
 
 namespace renderer {
 	bool IsZero(double value);
-
+											
 	class SphereProjector {
 	public:
 		// points_begin и points_end задают начало и конец интервала элементов geo::Coordinates
@@ -91,15 +91,15 @@ namespace renderer {
 		StopCoord GetCoord(const std::unordered_map<std::string_view, domain::Bus*>& info_bus,
 			std::vector<std::string_view>& buses_name) const;
 
-		void AddPolyline(svg::Document& doc, const std::unordered_map<std::string_view, domain::Bus*>& info_bus,
+		void VisualizePolyline(svg::Document& doc, const std::unordered_map<std::string_view, domain::Bus*>& info_bus,
 			std::vector<std::string_view>& buses_name, StopCoord& stop_to_coord) const;
 
-		void AddNameRoute(svg::Document& doc, const std::unordered_map<std::string_view, domain::Bus*>& info_bus,
+		void VisualizeNameRoute(svg::Document& doc, const std::unordered_map<std::string_view, domain::Bus*>& info_bus,
 			std::vector<std::string_view>& buses_name, StopCoord& stop_to_coord) const;
 
-		void AddStop(svg::Document& doc, StopCoord& stop_to_coord) const;
+		void VisualizeStop(svg::Document& doc, StopCoord& stop_to_coord) const;
 
-		void AddNameStop(svg::Document& doc, StopCoord& stop_to_coord) const;
+		void VisualizeNameStop(svg::Document& doc, StopCoord& stop_to_coord) const;
 	public:
 		svg::Document GetMap(const std::unordered_map<std::string_view, domain::Bus*>& info_bus) const;
 

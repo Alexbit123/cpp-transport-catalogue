@@ -13,4 +13,3 @@ int main()
     renderer::MapRenderer renderer;
     json_reader::Read(db, renderer, std::cin, std::cout, true);
 }
-

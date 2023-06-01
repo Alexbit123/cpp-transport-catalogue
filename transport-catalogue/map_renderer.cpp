@@ -3,8 +3,8 @@
 constexpr double EPSILON = 1e-6;
 
 namespace renderer {
-	bool IsZero(double value) {
-		return std::abs(value) < EPSILON;
+	bool IsZero(double value) {		//После удаления табуляции и, например, последующем редактировании кода 
+		return std::abs(value) < EPSILON;   //сочетание клавишь ctrl+k+d возвращают табуляцию ))))
 	}
 	svg::Point SphereProjector::operator()(geo::Coordinates coords) const {
 		return {
@@ -13,7 +13,7 @@ namespace renderer {
 		};
 	}
 	std::vector<std::string_view> MapRenderer::GetSortBuses(
-		const std::unordered_map<std::string_view, 
+		const std::unordered_map<std::string_view,
 		domain::Bus*>& info_bus) const {
 		std::vector<std::string_view> buses_name;
 		for (auto& [key, value] : info_bus) {
@@ -23,7 +23,7 @@ namespace renderer {
 
 		return buses_name;
 	}
-	StopCoord MapRenderer::GetCoord(const std::unordered_map<std::string_view, 
+	StopCoord MapRenderer::GetCoord(const std::unordered_map<std::string_view,
 		domain::Bus*>& info_bus, std::vector<std::string_view>& buses_name) const {
 		std::vector<geo::Coordinates> geo_coords;
 		std::vector<svg::Point> screen_coord;
@@ -52,9 +52,9 @@ namespace renderer {
 
 		return buf;
 	}
-	void MapRenderer::AddPolyline(svg::Document& doc, 
-		const std::unordered_map<std::string_view, 
-		domain::Bus*>& info_bus, std::vector<std::string_view>& buses_name, 
+	void MapRenderer::VisualizePolyline(svg::Document& doc,
+		const std::unordered_map<std::string_view,
+		domain::Bus*>& info_bus, std::vector<std::string_view>& buses_name,
 		StopCoord& stop_to_coord) const {
 		int index_offset_color = 0;
 		for (size_t i = 0; i < buses_name.size(); ++i) {
@@ -75,8 +75,8 @@ namespace renderer {
 			}
 		}
 	}
-	void MapRenderer::AddNameRoute(svg::Document& doc, 
-		const std::unordered_map<std::string_view, domain::Bus*>& info_bus, 
+	void MapRenderer::VisualizeNameRoute(svg::Document& doc,
+		const std::unordered_map<std::string_view, domain::Bus*>& info_bus,
 		std::vector<std::string_view>& buses_name, StopCoord& stop_to_coord) const {
 		int index_offset_color = 0;
 		for (size_t i = 0; i < buses_name.size(); ++i) {
@@ -155,7 +155,7 @@ namespace renderer {
 			}
 		}
 	}
-	void MapRenderer::AddStop(svg::Document& doc, StopCoord& stop_to_coord) const {
+	void MapRenderer::VisualizeStop(svg::Document& doc, StopCoord& stop_to_coord) const {
 		svg::Circle circle;
 		for (auto& [name_stop, coord] : stop_to_coord.stop_to_coord) {
 			circle.SetCenter(coord)
@@ -163,7 +163,7 @@ namespace renderer {
 			doc.Add(circle);
 		}
 	}
-	void MapRenderer::AddNameStop(svg::Document& doc, StopCoord& stop_to_coord) const {
+	void MapRenderer::VisualizeNameStop(svg::Document& doc, StopCoord& stop_to_coord) const {
 		svg::Text text_substrate, text_name_route;
 		for (auto& [name_stop, coord] : stop_to_coord.stop_to_coord) {
 			text_substrate.SetData(name_stop)
@@ -185,16 +185,16 @@ namespace renderer {
 			doc.Add(text_name_route);
 		}
 	}
-	svg::Document MapRenderer::GetMap(const std::unordered_map<std::string_view, 
+	svg::Document MapRenderer::GetMap(const std::unordered_map<std::string_view,
 		domain::Bus*>& info_bus) const {
 		svg::Document doc;
 		std::vector<std::string_view> buses_name = GetSortBuses(info_bus);
 		StopCoord stop_to_coord = GetCoord(info_bus, buses_name);
 
-		AddPolyline(doc, info_bus, buses_name, stop_to_coord);
-		AddNameRoute(doc, info_bus, buses_name, stop_to_coord);
-		AddStop(doc, stop_to_coord);
-		AddNameStop(doc, stop_to_coord);
+		VisualizePolyline(doc, info_bus, buses_name, stop_to_coord);
+		VisualizeNameRoute(doc, info_bus, buses_name, stop_to_coord);
+		VisualizeStop(doc, stop_to_coord);
+		VisualizeNameStop(doc, stop_to_coord);
 
 		return doc;
 	}

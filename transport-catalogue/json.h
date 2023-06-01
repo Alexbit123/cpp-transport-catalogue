@@ -16,6 +16,7 @@ namespace json {
 	using Dict = std::map<std::string, Node>;
 	using Array = std::vector<Node>;
 	using Number = std::variant<int, double>;
+	using Value = std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>;
 
 	// Эта ошибка должна выбрасываться при ошибках парсинга JSON
 	class ParsingError : public std::runtime_error {
@@ -23,18 +24,9 @@ namespace json {
 		using runtime_error::runtime_error;
 	};
 
-	class Node {
+	class Node : Value {
 	public:
-		using Value = std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>;
-
-		Node() = default;
-		Node(nullptr_t value);
-		Node(Array array);
-		Node(Dict map);
-		Node(bool value);
-		Node(int value);
-		Node(double value);
-		Node(std::string value);
+		using variant::variant;
 
 		const Array& AsArray() const;
 		const Dict& AsMap() const;
@@ -43,7 +35,7 @@ namespace json {
 		double AsDouble() const;
 		const std::string& AsString() const;
 
-		const Value& GetValue() const { return value_; }
+		const Value& GetValue() const { return *this; }
 
 		bool IsNull() const;
 		bool IsArray() const;
@@ -53,9 +45,6 @@ namespace json {
 		bool IsDouble() const; //Возвращает true, если в Node хранится int либо double.
 		bool IsPureDouble() const; //Возвращает true, если в Node хранится double.
 		bool IsString() const;
-
-	private:
-		Value value_;
 	};
 
 	class Document {
@@ -90,28 +79,19 @@ namespace json {
 		}
 	};
 
+	struct PrintValue {
+		std::ostream& out;
+
+		void operator()(std::nullptr_t) const;
+		void operator()(const bool value) const;
+		void operator()(const Array& value) const;
+		void operator()(const Dict& value) const;
+		void operator()(const std::string& value) const;
+		void operator()(const int value) const;
+		void operator()(const double value) const;
+	};
+
 	void PrintNode(const Node& node, std::ostream& out);
-
-	// Перегрузка функции PrintValue для вывода значений null
-	void PrintValue(std::nullptr_t, std::ostream& out);
-
-	// Перегрузка функции PrintValue для вывода значений bool
-	void PrintValue(const bool value, std::ostream& out);
-
-	// Перегрузка функции PrintValue для вывода значений Array
-	void PrintValue(const Array& value, std::ostream& out);
-
-	// Перегрузка функции PrintValue для вывода значений Dict
-	void PrintValue(const Dict& value, std::ostream& out);
-
-	// Перегрузка функции PrintValue для вывода значений string
-	void PrintValue(const std::string& value, std::ostream& out);
-	
-	// Перегрузка функции PrintValue для вывода значений int
-	void PrintValue(const int value, std::ostream& out);
-
-	// Перегрузка функции PrintValue для вывода значений double
-	void PrintValue(const double value, std::ostream& out);
 
 	bool operator==(const Node& node1, const Node& node2);
 	bool operator!=(const Node& node1, const Node& node2);
