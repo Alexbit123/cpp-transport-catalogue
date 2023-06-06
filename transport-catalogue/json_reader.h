@@ -2,6 +2,7 @@
 
 #include "request_handler.h"
 #include "json.h"
+#include "json_builder.h"
 
 namespace json_reader {
 	void Read(transport_catalogue::TransportCatalogue& db, 

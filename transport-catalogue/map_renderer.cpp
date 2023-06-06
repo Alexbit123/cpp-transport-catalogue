@@ -3,8 +3,8 @@
 constexpr double EPSILON = 1e-6;
 
 namespace renderer {
-	bool IsZero(double value) {		//После удаления табуляции и, например, последующем редактировании кода 
-		return std::abs(value) < EPSILON;   //сочетание клавишь ctrl+k+d возвращают табуляцию ))))
+	bool IsZero(double value) {		
+		return std::abs(value) < EPSILON;   
 	}
 	svg::Point SphereProjector::operator()(geo::Coordinates coords) const {
 		return {

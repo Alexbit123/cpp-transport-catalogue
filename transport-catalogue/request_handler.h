@@ -7,10 +7,10 @@ class RequestHandler {
 public:
 	RequestHandler(const transport_catalogue::TransportCatalogue& db, const renderer::MapRenderer& renderer);
 
-	// Возвращает информацию о маршруте (запрос Bus)
+	// Р’РѕР·РІСЂР°С‰Р°РµС‚ РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ РјР°СЂС€СЂСѓС‚Рµ (Р·Р°РїСЂРѕСЃ Bus)
 	std::optional<domain::QueryResultBus> GetBusStat(const std::string_view& bus_name) const;
 
-	// Возвращает маршруты, проходящие через
+	// Р’РѕР·РІСЂР°С‰Р°РµС‚ РјР°СЂС€СЂСѓС‚С‹, РїСЂРѕС…РѕРґСЏС‰РёРµ С‡РµСЂРµР·
 	const std::set<std::string_view>* GetBusesByStop(const std::string_view& stop_name) const;
 
 	const std::unordered_map<std::string_view, domain::Bus*>& GetInfoBuses() const;
@@ -18,7 +18,7 @@ public:
 	svg::Document RenderMap() const;
 
 private:
-	// RequestHandler использует агрегацию объектов "Транспортный Справочник" и "Визуализатор Карты"
+	// RequestHandler РёСЃРїРѕР»СЊР·СѓРµС‚ Р°РіСЂРµРіР°С†РёСЋ РѕР±СЉРµРєС‚РѕРІ "РўСЂР°РЅСЃРїРѕСЂС‚РЅС‹Р№ РЎРїСЂР°РІРѕС‡РЅРёРє" Рё "Р’РёР·СѓР°Р»РёР·Р°С‚РѕСЂ РљР°СЂС‚С‹"
 	const transport_catalogue::TransportCatalogue& db_;
 	const renderer::MapRenderer& renderer_;
 };

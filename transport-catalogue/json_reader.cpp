@@ -63,97 +63,108 @@ namespace json_reader {
 		json::Dict GetInfoBus(transport_catalogue::TransportCatalogue& db,
 			const json::Dict& elem) {
 			domain::QueryResultBus result;
-			json::Dict json_dict;
+			json::Builder builder;
 			std::string str = "not found";
 			result = db.GetInfoBus(elem.at("name").AsString());
 			if (result.count_stops != 0) {
-				json_dict["curvature"] = result.curvature;
-				json_dict["request_id"] = elem.at("id").AsInt();
-				json_dict["route_length"] = result.route_length;
-				json_dict["stop_count"] = result.count_stops;
-				json_dict["unique_stop_count"] = result.unique_count_stops;
+				builder.StartDict()
+					.Key("curvature").Value(result.curvature)
+					.Key("request_id").Value(elem.at("id").AsInt())
+					.Key("route_length").Value(result.route_length)
+					.Key("stop_count").Value(result.count_stops)
+					.Key("unique_stop_count").Value(result.unique_count_stops)
+					.EndDict();
 			}
 			else {
-				json_dict["request_id"] = elem.at("id").AsInt();
-				json_dict["error_message"] = str;
+				builder.StartDict()
+					.Key("request_id").Value(elem.at("id").AsInt())
+					.Key("error_message").Value(str)
+					.EndDict();
 			}
-			return json_dict;
+			return builder.Build().AsDict();
 		}
 
 		json::Dict GetInfoStop(transport_catalogue::TransportCatalogue& db,  
 			const json::Dict& elem) {
 			domain::QueryResultStop result;
 			result = db.GetInfoStop(elem.at("name").AsString());
-			json::Array json_array;
-			json::Dict json_dict;
+			json::Builder builder;
 			std::string str = "not found";
 			if (!result.buses.empty()) {
+				builder.StartDict().Key("buses").StartArray();
 				for (std::string_view bus : result.buses) {
-					json_array.push_back(json::Node(static_cast<std::string>(bus)));
+					builder.Value((static_cast<std::string>(bus)));
 				}
-				json_dict["buses"] = json_array;
-				json_dict["request_id"] = elem.at("id").AsInt();
+				builder.EndArray().Key("request_id").Value(elem.at("id").AsInt())
+					.EndDict();
 			}
 			else {
 				if (db.FindStop(result.query_name) != nullptr) {
-					json_dict["buses"] = json_array;
-					json_dict["request_id"] = elem.at("id").AsInt();
+					builder.StartDict()
+						.Key("buses").StartArray().EndArray()
+						.Key("request_id").Value(elem.at("id").AsInt())
+						.EndDict();
 				}
 				else {
-					json_dict["request_id"] = elem.at("id").AsInt();
-					json_dict["error_message"] = str;
+					builder.StartDict()
+						.Key("request_id").Value(elem.at("id").AsInt())
+						.Key("error_message").Value(str)
+						.EndDict();
 				}
 			}
-			return json_dict;
+			return builder.Build().AsDict();
 		}
 
 		json::Dict GetInfoMap(transport_catalogue::TransportCatalogue& db,
 			const json::Dict& elem, renderer::MapRenderer& renderer) {
 			std::stringstream out;
-			json::Dict json_dict;
-
+			json::Builder builder;
 			RequestHandler result(db, renderer);
 			svg::Document svg_doc = result.RenderMap();
 			svg_doc.Render(out);
 			std::string str = out.str();
 
 			json::Node json_node(str);
-			json_dict["map"] = json_node;
-			json_dict["request_id"] = elem.at("id").AsInt();
+			builder.StartDict()
+				.Key("map").Value(json_node.AsString())
+				.Key("request_id").Value(elem.at("id").AsInt())
+				.EndDict();
 			
-			return json_dict;
+			return builder.Build().AsDict();
 		}
 
 		void PrintResult(transport_catalogue::TransportCatalogue& db,
 			const json::Node& elem, std::ostream& out, renderer::MapRenderer& renderer) {
-			json::Array json_result;
-			auto map_base_requests = elem.AsMap().find("stat_requests");
+			json::Builder builder;
+			builder.StartArray();
+			auto map_base_requests = elem.AsDict().find("stat_requests");
 			auto& it_node = map_base_requests->second.AsArray();
 			for (auto& elem_node : it_node) {
-				auto& map_result = elem_node.AsMap();
+				auto& map_result = elem_node.AsDict();
 				if (map_result.count("type")) {
 					if (map_result.at("type").AsString() == "Stop") {
-						json_result.push_back(GetInfoStop(db, map_result));
+						builder.Value(GetInfoStop(db, map_result));
 					}
 					else if (map_result.at("type").AsString() == "Bus") {
-						json_result.push_back(GetInfoBus(db, map_result));
+						builder.Value(GetInfoBus(db, map_result));
 					}
 					else {
-						json_result.push_back(GetInfoMap(db, map_result, renderer));
+						builder.Value(GetInfoMap(db, map_result, renderer));
 					}
 				}
 			}
-			json::Node node_result(json_result);
-			json::PrintNode(node_result, out);
+			builder.EndArray();
+			json::Node node_result(builder.Build().AsArray());
+			json::Print(json::Document{ node_result }, out);
 		}
 
 		std::vector<domain::Stop> ParseQueryStop(const json::Node& elem) {
 			std::vector<domain::Stop> vec_stops;
-			auto map_base_requests = elem.AsMap().find("base_requests");
+			auto map_base_requests = elem.AsDict().find("base_requests");
 			auto& it_node = map_base_requests->second.AsArray();
 			for (auto& elem_node : it_node) {
 				domain::Stop stop;
-				auto& map_result = elem_node.AsMap();
+				auto& map_result = elem_node.AsDict();
 				if (map_result.count("type")) {
 					if (map_result.at("type").AsString() == "Stop") {
 						stop.stop_name = map_result.at("name").AsString();
@@ -168,17 +179,17 @@ namespace json_reader {
 
 		std::vector<domain::Distance> ParseQueryDistance(const json::Node& elem) {
 			std::vector<domain::Distance> vec_distance;
-			auto map_base_requests = elem.AsMap().find("base_requests");
+			auto map_base_requests = elem.AsDict().find("base_requests");
 			auto& it_node = map_base_requests->second.AsArray();
 			for (auto& elem_node : it_node) {
 				domain::Distance distance;
 				std::string name_one, name_two;
 				int dist;
-				auto& map_result = elem_node.AsMap();
+				auto& map_result = elem_node.AsDict();
 				if (map_result.count("type")) {
 					if (map_result.at("type").AsString() == "Stop") {
 						name_one = map_result.at("name").AsString();
-						auto& map_dist = map_result.at("road_distances").AsMap();
+						auto& map_dist = map_result.at("road_distances").AsDict();
 						for (auto& [name_stop, node] : map_dist) {
 							name_two = name_stop;
 							dist = node.AsInt();
@@ -194,11 +205,11 @@ namespace json_reader {
 		std::vector<domain::Bus> ParseQueryBus(const json::Node& elem,
 			transport_catalogue::TransportCatalogue& db) {
 			std::vector<domain::Bus> vec_buses;
-			auto map_base_requests = elem.AsMap().find("base_requests");
+			auto map_base_requests = elem.AsDict().find("base_requests");
 			auto& it_node = map_base_requests->second.AsArray();
 			for (auto& elem_node : it_node) {
 				domain::Bus bus;
-				auto& map_result = elem_node.AsMap();
+				auto& map_result = elem_node.AsDict();
 				if (map_result.count("type")) {
 					if (map_result.at("type").AsString() == "Bus") {
 						bus.bus_name = map_result.at("name").AsString();
@@ -228,8 +239,8 @@ namespace json_reader {
 
 		renderer::MapRenderer ParseQueryMap(const json::Node& elem) {
 			renderer::MapRenderer result_map_renderer;
-			auto map_base_requests = elem.AsMap().find("render_settings");
-			auto& map_result = map_base_requests->second.AsMap();
+			auto map_base_requests = elem.AsDict().find("render_settings");
+			auto& map_result = map_base_requests->second.AsDict();
 			if (map_result.count("width")) {
 				result_map_renderer.width_ = map_result.at("width").AsDouble();
 				result_map_renderer.height_ = map_result.at("height").AsDouble();
@@ -277,4 +288,3 @@ namespace json_reader {
 	}//close detail
 
 }//close json_reader
-
