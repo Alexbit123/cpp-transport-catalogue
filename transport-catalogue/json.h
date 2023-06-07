@@ -22,6 +22,7 @@ namespace json {
     public:
         using variant::variant;
         using Value = variant;
+        Node(Value value) : variant(value) {}
 
         bool IsInt() const {
             return std::holds_alternative<int>(*this);
@@ -153,6 +154,7 @@ namespace json {
         const Value& GetValue() const {
             return *this;
         }
+
         Value& GetValue() {
             return *this;
         }
