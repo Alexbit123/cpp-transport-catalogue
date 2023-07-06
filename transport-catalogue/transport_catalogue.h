@@ -21,7 +21,7 @@ namespace transport_catalogue {
 	public:
 		void AddBus(const domain::Bus& query);
 
-		void AddStop(const domain::Stop& query);
+		void AddStop(domain::Stop& query);
 
 		void AddDistance(const std::string_view name_stop_one, 
 			const std::string_view name_stop_two, const uint64_t distance);
@@ -33,6 +33,9 @@ namespace transport_catalogue {
 		const std::set<std::string_view>& GetBuses(std::string_view name_stop) const;
 
 		uint64_t GetDistance(std::string_view stop_one, std::string_view stop_two) const;
+		int GetDistance(const domain::Stop* lhs, const domain::Stop* rhs) const;
+
+		size_t GetVertexCount() const { return vertex_count_; }
 
 		domain::QueryResultBus GetInfoBus(std::string_view name_bus) const;
 
@@ -48,5 +51,6 @@ namespace transport_catalogue {
 			uint64_t, domain::StopHasher> stops_distance;
 		std::deque<domain::Bus> buses;
 		std::deque<domain::Stop> stops;
+		size_t vertex_count_ = 0;
 	};
 }//close transport_catalogue

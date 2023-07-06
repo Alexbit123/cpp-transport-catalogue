@@ -11,14 +11,15 @@ namespace transport_catalogue {
 		}
 	}
 
-	void TransportCatalogue::AddStop(const domain::Stop& query) {
+	void TransportCatalogue::AddStop(domain::Stop& query) {
+		query.vertex_id = vertex_count_++;
 		stops.push_back(query);
 		stopname_to_stop[stops.back().stop_name] = &stops.back();
 	}
 
 	void TransportCatalogue::AddDistance(const std::string_view name_stop_one,
 		const std::string_view name_stop_two, const uint64_t distance) {
-			stops_distance[{FindStop(name_stop_one), FindStop(name_stop_two)}] = distance;
+		stops_distance[{FindStop(name_stop_one), FindStop(name_stop_two)}] = distance;
 	}
 
 	domain::Bus* TransportCatalogue::FindBus(std::string_view name_bus) const {
@@ -48,6 +49,15 @@ namespace transport_catalogue {
 			return stops_distance.at({ FindStop(stop_one), FindStop(stop_two) });
 		}
 		return stops_distance.at({ FindStop(stop_two), FindStop(stop_one) });
+	}
+
+	int TransportCatalogue::GetDistance(const domain::Stop* lhs, const domain::Stop* rhs) const
+	{
+		if (stops_distance.count({ FindStop(lhs->stop_name), FindStop(rhs->stop_name) })) {
+			return stops_distance.at({ FindStop(lhs->stop_name), FindStop(rhs->stop_name) });
+		}
+
+		return stops_distance.at({ FindStop(rhs->stop_name), FindStop(lhs->stop_name) });
 	}
 
 	domain::QueryResultBus TransportCatalogue::GetInfoBus(std::string_view name_bus) const {

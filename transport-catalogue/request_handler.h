@@ -2,10 +2,13 @@
 
 #include "transport_catalogue.h"
 #include "map_renderer.h"
+#include "transport_router.h"
+#include "graph.h"
 
 class RequestHandler {
 public:
-	RequestHandler(const transport_catalogue::TransportCatalogue& db, const renderer::MapRenderer& renderer);
+	RequestHandler(const transport_catalogue::TransportCatalogue& db,
+		const renderer::MapRenderer& renderer, router::TransportRouter& route);
 
 	// Возвращает информацию о маршруте (запрос Bus)
 	std::optional<domain::QueryResultBus> GetBusStat(const std::string_view& bus_name) const;
@@ -17,8 +20,11 @@ public:
 
 	svg::Document RenderMap() const;
 
+	std::optional<router::CompletedRoute> CreateRoute(graph::VertexId from, graph::VertexId to);
+
 private:
 	// RequestHandler использует агрегацию объектов "Транспортный Справочник" и "Визуализатор Карты"
 	const transport_catalogue::TransportCatalogue& db_;
 	const renderer::MapRenderer& renderer_;
+	router::TransportRouter& route_;
 };

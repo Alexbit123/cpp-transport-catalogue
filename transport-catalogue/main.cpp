@@ -11,5 +11,6 @@ int main()
     //SetConsoleCP(1251);
     transport_catalogue::TransportCatalogue db;
     renderer::MapRenderer renderer;
-    json_reader::Read(db, renderer, std::cin, std::cout, true);
+    router::TransportRouter route;
+    json_reader::Read(db, renderer, route, std::cin, std::cout, true);
 }

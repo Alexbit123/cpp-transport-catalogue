@@ -1,8 +1,11 @@
 #include "json_reader.h"
 
 namespace json_reader {
-	void Read(transport_catalogue::TransportCatalogue& db, 
-		renderer::MapRenderer& renderer, std::istream& in, std::ostream& out, bool need_out_stat_request) {
+	using namespace std::string_literals;
+
+	void Read(transport_catalogue::TransportCatalogue& db,
+		renderer::MapRenderer& renderer, router::TransportRouter& route, std::istream& in, std::ostream& out,
+		bool need_out_stat_request) {
 		std::string str, query = "";
 		int count_bracket = 0;
 		while (true) {
@@ -18,23 +21,23 @@ namespace json_reader {
 				break;
 			}
 		}
-		add_json_query::AddBaseRequests(db, renderer, query);
+		add_json_query::AddBaseRequests(db, renderer, route, query);
 		if (need_out_stat_request) {
-			out_json_query::Output(db, query, out, renderer);
+			out_json_query::Output(db, query, out, renderer, route);
 		}
 	}
 	namespace out_json_query {
-		void Output(transport_catalogue::TransportCatalogue& db, 
-			std::string& query, std::ostream& out, renderer::MapRenderer& renderer) {
+		void Output(transport_catalogue::TransportCatalogue& db,
+			std::string& query, std::ostream& out, renderer::MapRenderer& renderer, router::TransportRouter& route) {
 			std::istringstream strm(query);
 			json::Document doc = json::Load(strm);
 
-			detail::PrintResult(db, doc.GetRoot(), out, renderer);
+			detail::PrintResult(db, doc.GetRoot(), out, renderer, route);
 		}
 	}
 	namespace add_json_query {
 		void AddBaseRequests(transport_catalogue::TransportCatalogue& db,
-			renderer::MapRenderer& renderer, std::string& query) {
+			renderer::MapRenderer& renderer, router::TransportRouter& route, std::string& query) {
 			std::istringstream strm(query);
 			json::Document doc = json::Load(strm);
 
@@ -56,6 +59,8 @@ namespace json_reader {
 			}
 
 			renderer = detail::ParseQueryMap(doc.GetRoot());
+
+			route = detail::ParseQueryRoute(doc.GetRoot());
 		}
 	}
 
@@ -84,7 +89,7 @@ namespace json_reader {
 			return builder.Build().AsDict();
 		}
 
-		json::Dict GetInfoStop(transport_catalogue::TransportCatalogue& db,  
+		json::Dict GetInfoStop(transport_catalogue::TransportCatalogue& db,
 			const json::Dict& elem) {
 			domain::QueryResultStop result;
 			result = db.GetInfoStop(elem.at("name").AsString());
@@ -116,10 +121,10 @@ namespace json_reader {
 		}
 
 		json::Dict GetInfoMap(transport_catalogue::TransportCatalogue& db,
-			const json::Dict& elem, renderer::MapRenderer& renderer) {
+			const json::Dict& elem, renderer::MapRenderer& renderer, router::TransportRouter& route) {
 			std::stringstream out;
 			json::Builder builder;
-			RequestHandler result(db, renderer);
+			RequestHandler result(db, renderer, route);
 			svg::Document svg_doc = result.RenderMap();
 			svg_doc.Render(out);
 			std::string str = out.str();
@@ -129,12 +134,39 @@ namespace json_reader {
 				.Key("map").Value(json_node.AsString())
 				.Key("request_id").Value(elem.at("id").AsInt())
 				.EndDict();
-			
+
+			return builder.Build().AsDict();
+		}
+
+		json::Dict GetInfoRoute(transport_catalogue::TransportCatalogue& db,
+			const json::Dict& elem, renderer::MapRenderer& renderer, router::TransportRouter& route) {
+			json::Builder builder;
+			RequestHandler result(db, renderer, route);
+			auto doc = result.CreateRoute(db.FindStop(elem.at("from"s).AsString())->vertex_id,
+				db.FindStop(elem.at("to"s).AsString())->vertex_id);
+			if (!doc) {
+				builder.StartDict().Key("error_message"s).Value("not found"s)
+					.Key("request_id").Value(elem.at("id"s).AsInt()).EndDict();
+			}
+			else {
+				builder.StartDict().Key("items"s).StartArray();
+				for (auto& elem : doc->route) {
+					builder.StartDict().Key("stop_name"s).Value(elem.stop->stop_name);
+					builder.Key("time"s).Value(elem.wait_time);
+					builder.Key("type"s).Value("Wait"s).EndDict();
+					builder.StartDict().Key("bus"s).Value(elem.bus->bus_name);
+					builder.Key("span_count"s).Value(elem.count_stops);
+					builder.Key("time"s).Value(elem.run_time);
+					builder.Key("type"s).Value("Bus"s).EndDict();
+				}
+				builder.EndArray().Key("request_id"s).Value(elem.at("id"s).AsInt())
+					.Key("total_time"s).Value(doc->total_time).EndDict();
+			}
 			return builder.Build().AsDict();
 		}
 
 		void PrintResult(transport_catalogue::TransportCatalogue& db,
-			const json::Node& elem, std::ostream& out, renderer::MapRenderer& renderer) {
+			const json::Node& elem, std::ostream& out, renderer::MapRenderer& renderer, router::TransportRouter& route) {
 			json::Builder builder;
 			builder.StartArray();
 			auto map_base_requests = elem.AsDict().find("stat_requests");
@@ -148,8 +180,11 @@ namespace json_reader {
 					else if (map_result.at("type").AsString() == "Bus") {
 						builder.Value(GetInfoBus(db, map_result));
 					}
+					else if (map_result.at("type").AsString() == "Route") {
+						builder.Value(GetInfoRoute(db, map_result, renderer, route));
+					}
 					else {
-						builder.Value(GetInfoMap(db, map_result, renderer));
+						builder.Value(GetInfoMap(db, map_result, renderer, route));
 					}
 				}
 			}
@@ -262,6 +297,17 @@ namespace json_reader {
 				}
 			}
 			return result_map_renderer;
+		}
+
+		router::TransportRouter ParseQueryRoute(const json::Node& elem) {
+			router::TransportRouter route;
+			auto map_base_requests = elem.AsDict().find("routing_settings");
+			auto& map_result = map_base_requests->second.AsDict();
+			if (map_result.count("bus_wait_time")) {
+				route.wait = map_result.at("bus_wait_time").AsInt();
+				route.speed = map_result.at("bus_velocity").AsDouble();
+			}
+			return route;
 		}
 
 		svg::Color ParseColor(const json::Node& node_result) {

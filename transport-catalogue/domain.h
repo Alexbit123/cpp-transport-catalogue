@@ -1,5 +1,6 @@
 #pragma once
 #include "geo.h"
+#include "graph.h"
 #include <string>
 #include <vector>
 #include <set>
@@ -8,6 +9,7 @@ namespace domain {
 		struct Stop {
 			std::string stop_name = "";
 			geo::Coordinates coordinates_;
+			graph::VertexId vertex_id = 0;
 		};
 
 		struct Bus {

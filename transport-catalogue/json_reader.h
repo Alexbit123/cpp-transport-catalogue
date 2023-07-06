@@ -6,16 +6,17 @@
 
 namespace json_reader {
 	void Read(transport_catalogue::TransportCatalogue& db, 
-		renderer::MapRenderer& renderer, std::istream& in, std::ostream& out, bool need_out_stat_request = false);
+		renderer::MapRenderer& renderer, router::TransportRouter& route, std::istream& in, std::ostream& out,
+		bool need_out_stat_request = false);
 
 	namespace out_json_query {
 		void Output(transport_catalogue::TransportCatalogue& db, 
-			std::string& query, std::ostream& out, renderer::MapRenderer& renderer);
+			std::string& query, std::ostream& out, renderer::MapRenderer& renderer, router::TransportRouter& route);
 	}
 
 	namespace add_json_query {
 		void AddBaseRequests(transport_catalogue::TransportCatalogue& db,
-			renderer::MapRenderer& renderer, std::string& query);
+			renderer::MapRenderer& renderer, router::TransportRouter& route, std::string& query);
 
 	}//close add_json_query
 	namespace detail {
@@ -26,10 +27,10 @@ namespace json_reader {
 			const json::Dict& elem);
 
 		json::Dict GetInfoMap(transport_catalogue::TransportCatalogue& db,
-			const json::Dict& elem, renderer::MapRenderer& renderer);
+			const json::Dict& elem, renderer::MapRenderer& renderer, router::TransportRouter& route);
 
 		void PrintResult(transport_catalogue::TransportCatalogue& db, 
-			const json::Node& elem, std::ostream& out, renderer::MapRenderer& renderer);
+			const json::Node& elem, std::ostream& out, renderer::MapRenderer& renderer, router::TransportRouter& route);
 
 		std::vector<domain::Stop> ParseQueryStop(const json::Node& elem);
 
@@ -39,6 +40,8 @@ namespace json_reader {
 			transport_catalogue::TransportCatalogue& db);
 
 		renderer::MapRenderer ParseQueryMap(const json::Node& elem);
+
+		router::TransportRouter ParseQueryRoute(const json::Node& elem);
 
 		svg::Color ParseColor(const json::Node& node_result);
 	}//close detail

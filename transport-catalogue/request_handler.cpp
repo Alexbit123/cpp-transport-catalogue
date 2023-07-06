@@ -1,8 +1,8 @@
 #include "request_handler.h"
 
 RequestHandler::RequestHandler(const transport_catalogue::TransportCatalogue& db, 
-	const renderer::MapRenderer& renderer)
-	:db_(db), renderer_(renderer) {
+	const renderer::MapRenderer& renderer, router::TransportRouter& route)
+	:db_(db), renderer_(renderer), route_(route) {
 }
 
 std::optional<domain::QueryResultBus> RequestHandler::GetBusStat(const std::string_view& bus_name) const {
@@ -20,4 +20,8 @@ const std::unordered_map<std::string_view, domain::Bus*>& RequestHandler::GetInf
 
 svg::Document RequestHandler::RenderMap() const {
 	return renderer_.GetMap(GetInfoBuses());
+}
+
+std::optional<router::CompletedRoute> RequestHandler::CreateRoute(graph::VertexId from, graph::VertexId to) {
+	return route_.ResultRoute(GetInfoBuses(), db_, from, to);
 }
