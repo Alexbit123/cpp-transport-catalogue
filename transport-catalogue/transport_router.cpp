@@ -60,4 +60,16 @@ namespace router {
 		CreateGraph(info_bus, db);
 		return ComputeRoute(from, to);
 	}
+
+	graph::DirectedWeightedGraph<double>& TransportRouter::GetGraph() {
+		return graph_;
+	}
+
+	std::unordered_map<graph::EdgeId, EdgeInfo>& TransportRouter::GetEdges() {
+		return edges_;
+	}
+
+	std::unique_ptr<graph::Router<double>>& TransportRouter::GetRouter() {
+		return router_;
+	}
 }

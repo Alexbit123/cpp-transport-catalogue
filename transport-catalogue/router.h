@@ -18,9 +18,16 @@ template <typename Weight>
 class Router {
 private:
     using Graph = DirectedWeightedGraph<Weight>;
-
 public:
-    explicit Router(const Graph& graph);
+    struct RouteInternalData {
+        Weight weight;
+        std::optional<EdgeId> prev_edge;
+    };
+
+    using RoutesInternalData = std::vector<std::vector<std::optional<RouteInternalData>>>;
+
+    explicit Router(Graph& graph);
+    explicit Router(Graph& graph, RoutesInternalData& routes_internal_data_);
 
     struct RouteInfo {
         Weight weight;
@@ -29,12 +36,15 @@ public:
 
     std::optional<RouteInfo> BuildRoute(VertexId from, VertexId to) const;
 
+    RoutesInternalData& GetRoutesInternalData() { return routes_internal_data_; }
+
 private:
-    struct RouteInternalData {
+    /*struct RouteInternalData {
         Weight weight;
         std::optional<EdgeId> prev_edge;
-    };
-    using RoutesInternalData = std::vector<std::vector<std::optional<RouteInternalData>>>;
+    };*/
+
+    //using RoutesInternalData = std::vector<std::vector<std::optional<RouteInternalData>>>;
 
     void InitializeRoutesInternalData(const Graph& graph) {
         const size_t vertex_count = graph.GetVertexCount();
@@ -81,7 +91,7 @@ private:
 };
 
 template <typename Weight>
-Router<Weight>::Router(const Graph& graph)
+Router<Weight>::Router(Graph& graph)
     : graph_(graph)
     , routes_internal_data_(graph.GetVertexCount(),
                             std::vector<std::optional<RouteInternalData>>(graph.GetVertexCount()))
@@ -92,6 +102,12 @@ Router<Weight>::Router(const Graph& graph)
     for (VertexId vertex_through = 0; vertex_through < vertex_count; ++vertex_through) {
         RelaxRoutesInternalDataThroughVertex(vertex_count, vertex_through);
     }
+}
+
+template<typename Weight>
+inline Router<Weight>::Router(Graph& graph, RoutesInternalData& routes_internal_data) 
+    : graph_(graph)
+    , routes_internal_data_(routes_internal_data) {
 }
 
 template <typename Weight>
@@ -113,5 +129,4 @@ std::optional<typename Router<Weight>::RouteInfo> Router<Weight>::BuildRoute(Ver
 
     return RouteInfo{weight, std::move(edges)};
 }
-
 }  // namespace graph

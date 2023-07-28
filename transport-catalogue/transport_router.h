@@ -40,12 +40,18 @@ namespace router {
 
 		std::optional<CompletedRoute> ComputeRoute(graph::VertexId from, graph::VertexId to);
 
+	public:
 		void CreateGraph(const std::unordered_map <std::string_view,
 			domain::Bus*>& info_bus, const transport_catalogue::TransportCatalogue& db);
-	public:
+
 		std::optional<CompletedRoute> ResultRoute(const std::unordered_map<std::string_view,
 			domain::Bus*>& info_bus, const transport_catalogue::TransportCatalogue& db,
 			graph::VertexId from, graph::VertexId to);
+
+		graph::DirectedWeightedGraph<double>& GetGraph();
+		std::unordered_map<graph::EdgeId, EdgeInfo>& GetEdges();
+		std::unique_ptr<graph::Router<double>>& GetRouter();
+
 		int wait = 0;
 		double speed = 0.0;
 	};

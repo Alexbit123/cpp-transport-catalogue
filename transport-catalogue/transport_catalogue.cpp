@@ -94,4 +94,18 @@ namespace transport_catalogue {
 	const std::unordered_map<std::string_view, domain::Bus*>& TransportCatalogue::GetBusNameToBus() const {
 		return busname_to_bus;
 	}
+
+	const std::deque<domain::Bus>& TransportCatalogue::GetBusDeque() const {
+		return buses;
+	}
+
+	const std::deque<domain::Stop>& TransportCatalogue::GetStopDeque() const {
+		return stops;
+	}
+
+	const std::unordered_map<std::pair<domain::Stop*, domain::Stop*>, uint64_t, domain::StopHasher>& 
+		TransportCatalogue::GetStopsDistance() const {
+		return stops_distance;
+	}
+
 }//close transport_catalogue

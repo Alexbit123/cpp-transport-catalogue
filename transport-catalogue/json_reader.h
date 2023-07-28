@@ -3,15 +3,20 @@
 #include "request_handler.h"
 #include "json.h"
 #include "json_builder.h"
+//#include <filesystem>
 
 namespace json_reader {
 	void Read(transport_catalogue::TransportCatalogue& db, 
-		renderer::MapRenderer& renderer, router::TransportRouter& route, std::istream& in, std::ostream& out,
-		bool need_out_stat_request = false);
+		renderer::MapRenderer& renderer, router::TransportRouter& route, std::istream& in, std::string& query);
+
+	void Out(transport_catalogue::TransportCatalogue& db,
+		renderer::MapRenderer& renderer, router::TransportRouter& route, std::istream& in,
+		std::ostream& out, std::string& query);
 
 	namespace out_json_query {
 		void Output(transport_catalogue::TransportCatalogue& db, 
-			std::string& query, std::ostream& out, renderer::MapRenderer& renderer, router::TransportRouter& route);
+			std::string& query, std::istream& in ,std::ostream& out, 
+			renderer::MapRenderer& renderer, router::TransportRouter& route);
 	}
 
 	namespace add_json_query {
@@ -44,5 +49,7 @@ namespace json_reader {
 		router::TransportRouter ParseQueryRoute(const json::Node& elem);
 
 		svg::Color ParseColor(const json::Node& node_result);
+
+		std::filesystem::path ParseQuerySerialization(const json::Node& elem);
 	}//close detail
 }//close json_reader

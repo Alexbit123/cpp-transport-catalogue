@@ -4,9 +4,8 @@ namespace json_reader {
 	using namespace std::string_literals;
 
 	void Read(transport_catalogue::TransportCatalogue& db,
-		renderer::MapRenderer& renderer, router::TransportRouter& route, std::istream& in, std::ostream& out,
-		bool need_out_stat_request) {
-		std::string str, query = "";
+		renderer::MapRenderer& renderer, router::TransportRouter& route, std::istream& in, std::string& query) {
+		std::string str = "";
 		int count_bracket = 0;
 		while (true) {
 			std::getline(in >> std::ws, str);
@@ -22,15 +21,58 @@ namespace json_reader {
 			}
 		}
 		add_json_query::AddBaseRequests(db, renderer, route, query);
-		if (need_out_stat_request) {
-			out_json_query::Output(db, query, out, renderer, route);
-		}
+	}
+
+	void Out(transport_catalogue::TransportCatalogue& db,
+		renderer::MapRenderer& renderer, router::TransportRouter& route, 
+		std::istream& in, std::ostream& out, std::string& query) {
+		out_json_query::Output(db, query, in, out, renderer, route);
 	}
 	namespace out_json_query {
-		void Output(transport_catalogue::TransportCatalogue& db,
-			std::string& query, std::ostream& out, renderer::MapRenderer& renderer, router::TransportRouter& route) {
+		void Output(transport_catalogue::TransportCatalogue& db, std::string& query, 
+			std::istream& in, std::ostream& out, renderer::MapRenderer& renderer,
+			router::TransportRouter& route) {
+			std::string str = "";
+			int count_bracket = 0;
+			while (true) {
+				std::getline(in >> std::ws, str);
+				query += str;
+				if (str.find("{") != str.npos) {
+					++count_bracket;
+				}
+				if (str.find("}") != str.npos) {
+					--count_bracket;
+				}
+				if (count_bracket == 0) {
+					break;
+				}
+			}
 			std::istringstream strm(query);
 			json::Document doc = json::Load(strm);
+
+			proto_info::ProtoInfo proto;
+			const std::filesystem::path path = detail::ParseQuerySerialization(doc.GetRoot());
+			proto.Deserialization(path);
+
+			std::vector<domain::Stop> result_stops = proto.ParseProtoStops();
+			for (auto& stop : result_stops) {
+				db.AddStop(stop);
+			}
+
+			std::vector<domain::Distance> result_distance = proto.ParseProtoDistance();
+			for (auto& dist : result_distance) {
+				for (auto& [name_stop_one, name_stop_two, distance] : dist.stop_to_stop_distance) {
+					db.AddDistance(name_stop_one, name_stop_two, distance);
+				}
+			}
+
+			std::vector<domain::Bus> result_bus = proto.ParseProtoBuses(db);
+			for (auto& bus : result_bus) {
+				db.AddBus(bus);
+			}
+
+			proto.ParseProtoMap(renderer);
+			proto.ParseProtoTransportRouter(route, db);
 
 			detail::PrintResult(db, doc.GetRoot(), out, renderer, route);
 		}
@@ -61,6 +103,11 @@ namespace json_reader {
 			renderer = detail::ParseQueryMap(doc.GetRoot());
 
 			route = detail::ParseQueryRoute(doc.GetRoot());
+			route.CreateGraph(db.GetBusNameToBus(), db);
+
+			proto_info::ProtoInfo proto(db, renderer, route);
+			const std::filesystem::path path = detail::ParseQuerySerialization(doc.GetRoot());
+			proto.Serialization(path);
 		}
 	}
 
@@ -329,6 +376,16 @@ namespace json_reader {
 				}
 			}
 			return color_;
+		}
+
+		std::filesystem::path ParseQuerySerialization(const json::Node& elem) {
+			std::filesystem::path path;
+			auto map_base_requests = elem.AsDict().find("serialization_settings");
+			auto& map_result = map_base_requests->second.AsDict();
+			if (map_result.count("file")) {
+				path = map_result.at("file").AsString();
+			}
+			return path;
 		}
 
 	}//close detail
